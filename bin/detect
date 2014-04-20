@@ -2,7 +2,7 @@
 # bin/use <build-dir>
 
 if [ -f $1/proxy.cfg ]; then
-  echo "Iterate Proxy Configuration file fond" && exit 0
+  echo "Nginx Proxy" && exit 0
 else
   echo "no" && exit 1
 fi
