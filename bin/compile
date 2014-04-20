@@ -58,3 +58,6 @@ cat >> $build_dir/.nginx.conf <<CLOSER
     }
 }
 CLOSER
+
+echo "Complete generated nginx.conf:"
+cat $build_dir/.nginx.conf
