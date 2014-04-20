@@ -34,10 +34,14 @@ STUFF
 
 paths=($(cat $build_dir/proxy.cfg | cut -d"|" -f1 | sed '/^$/d'))
 hosts=($(cat $build_dir/proxy.cfg | cut -d"|" -f2 | sed '/^$/d'))
+auths=($(cat $build_dir/proxy.cfg | cut -d"|" -f3 | sed '/^$/d'))
 
 for ((i=0;i<${#paths[@]};i++)); do
     echo "Adding proxy from ${paths[i]} to ${hosts[i]}"
-
+    auth_header=""
+    if [ -n "${auths[i]}" ]; then
+        auth_header="proxy_set_header Authorization \"Basic ${auths[i]}\";"
+    fi
 cat >> $build_dir/.nginx.conf <<APP
  location ${paths[i]} {
     proxy_pass  https://${hosts[i]};
@@ -48,6 +52,7 @@ cat >> $build_dir/.nginx.conf <<APP
     proxy_set_header X-Forwarded-Proto \$scheme;
     proxy_set_header X-Forwarded-For \$remote_addr;
     proxy_set_header X-Forwarded-Port \$server_port;
+    $auth_header
   }
 APP
 
