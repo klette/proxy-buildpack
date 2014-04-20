@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+build_dir=$1
+cache_dir=$2
+
+# fail fast
+set -e
+
+echo "-----> Installing nginx-light with apt-get"
+
+apt-get -y update
+apt-get -y install nginx-light
+
+echo "       Nginx installed"
+
+echo "-----> Adding Nginx config"
+
+cat > $build_dir/.nginx.conf <<STUFF
+daemon off;
+error_log stderr;
+worker_processes 1;
+
+events {
+    worker_connections 1024;
+}
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log /dev/stdout;
+
+    server {
+        listen 5000;
+STUFF
+
+paths=($(cat $build_dir/proxy.cfg | cut -d"|" -f1 | sed '/^$/d'))
+hosts=($(cat $build_dir/proxy.cfg | cut -d"|" -f2 | sed '/^$/d'))
+
+for ((i=0;i<${#paths[@]};i++)); do
+    echo "Adding proxy from ${paths[i]} to ${hosts[i]}"
+
+cat >> $build_dir/.nginx.conf <<APP
+ location ${paths[i]} {
+    proxy_pass  https://${hosts[i]};
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Request-Start $msec;
+  }
+APP
+
+done
+
+cat >> $build_dir/.nginx.conf <<CLOSER
+    }
+}
+CLOSER
